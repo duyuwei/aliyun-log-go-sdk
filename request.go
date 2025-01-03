@@ -23,16 +23,11 @@ var (
 	defaultHTTPIdleTimeout = time.Second * 55
 )
 
-func newDefaultTransport() *http.Transport {
-	t := http.DefaultTransport.(*http.Transport).Clone()
-	t.IdleConnTimeout = defaultHTTPIdleTimeout
-	return t
-}
 
 // returns a new http client instance with default config
 func newDefaultHTTPClient(requestTimeout time.Duration) *http.Client {
 	return &http.Client{
-		Transport: newDefaultTransport(),
+		Transport: http.NewTransport(),
 		Timeout:   requestTimeout,
 	}
 }
