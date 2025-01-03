@@ -9,6 +9,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"time"
+	"net"
 
 	"github.com/cenkalti/backoff"
 	"github.com/go-kit/kit/log/level"
@@ -27,22 +28,28 @@ func defaultTransportDialContext(dialer *net.Dialer) func(context.Context, strin
 	return dialer.DialContext
 }
 
+func newDefaultTransport() *http.Transport {
+	t := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: defaultTransportDialContext(&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}),
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+	t.IdleConnTimeout = defaultHTTPIdleTimeout
+	return t
+}
+
 
 // returns a new http client instance with default config
 func newDefaultHTTPClient(requestTimeout time.Duration) *http.Client {
 	return &http.Client{
-		Transport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
-			DialContext: defaultTransportDialContext(&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
-			}),
-			ForceAttemptHTTP2:     true,
-			MaxIdleConns:          100,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
-		},
+		Transport: newDefaultTransport(),
 		Timeout:   requestTimeout,
 	}
 }
