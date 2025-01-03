@@ -23,14 +23,30 @@ var (
 	defaultHTTPIdleTimeout = time.Second * 55
 )
 
+func defaultTransportDialContext(dialer *net.Dialer) func(context.Context, string, string) (net.Conn, error) {
+	return dialer.DialContext
+}
+
 
 // returns a new http client instance with default config
 func newDefaultHTTPClient(requestTimeout time.Duration) *http.Client {
 	return &http.Client{
-		Transport: http.NewTransport(),
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: defaultTransportDialContext(&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}),
+			ForceAttemptHTTP2:     true,
+			MaxIdleConns:          100,
+			IdleConnTimeout:       90 * time.Second,
+			TLSHandshakeTimeout:   10 * time.Second,
+			ExpectContinueTimeout: 1 * time.Second,
+		},
 		Timeout:   requestTimeout,
 	}
 }
+
 
 func retryReadErrorCheck(ctx context.Context, err error) (bool, error) {
 	if err == nil {
